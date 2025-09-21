@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Realtime Chat (No DB)</title>
+  <!-- Premium typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" rel="stylesheet">
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <header>
+        <div>
+          <div class="room-pill" id="roomName">#general</div>
+          <div class="muted" id="userCount" style="font-size:13px">0 online</div>
+        </div>
+        <button class="btn" id="themeToggle" title="Toggle theme" style="padding:8px;border-radius:12px;width:auto;height:40px;min-width:40px">Theme</button>
+      </header>
+      <div class="search-bar">
+        <input id="userSearch" class="input" placeholder="Search or start a new chat" />
+      </div>
+      <div class="chatlist" id="chatList"></div>
+      <div class="userlist" id="userList"></div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div>
+          <div style="font-weight:700;font-size:20px;color:var(--text);margin-bottom:4px">Messages</div>
+          <div class="muted" id="subtitle" style="font-size:14px">No database. Ephemeral.</div>
+        </div>
+        <div class="actions">
+          <button class="btn mobile-toggle" id="sidebarToggle" title="Show users" style="gap:8px">Users</button>
+          <button class="btn" id="notificationSettings" title="Notification Settings" style="gap:8px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          </button>
+          <button class="btn" id="connectionSettings" title="Connection Settings" style="gap:8px">Connection</button>
+          <button class="btn" id="openSettings" title="Settings" style="gap:8px">Settings</button>
+          <div id="currentUserChip" class="user-chip" hidden>
+            <div class="avatar" id="currentUserAvatar">U</div>
+            <span class="name" id="currentUserName">User</span>
+          </div>
+          <button class="btn" id="copyLink" style="gap:8px">Copy Link</button>
+          <button class="btn" id="changeRoom" style="gap:8px">Change Room</button>
+          <button class="btn" id="logoutBtn" style="gap:8px">Logout</button>
+        </div>
+      </div>
+
+      <div class="chat" id="chat"></div>
+      <div class="typing" id="typing"></div>
+      <div class="composer">
+        <div id="attachmentPreview" hidden></div>
+        <div class="reply-preview" id="replyPreview" hidden>
+          <div class="rp-line"></div>
+          <div class="rp-content">
+            <div class="rp-name" id="replyName">User</div>
+            <div class="rp-text" id="replyText">Preview text…</div>
+          </div>
+          <button class="btn icon-btn rp-close" id="replyCancel" title="Cancel reply">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <div class="composer-input-wrap">
+          <textarea id="input" placeholder="Type a message"></textarea>
+          <div class="composer-actions">
+            <input id="fileInput" type="file" hidden />
+            <button class="btn icon-btn" id="attach" title="Attach file">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="composer-actions">
+          <button class="btn icon-btn" id="audioCall" title="Start audio call">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+          </button>
+          <button class="btn icon-btn" id="videoCall" title="Start video call">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+          </button>
+          <button class="btn send-btn" id="send" title="Send message">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </button>
+        </div>
+      </div>
+      <div class="hint">Invite someone by sending them the room link</div>
+
+      <button class="btn scroll-latest" id="toBottom" style="display:none">
+        <span>New messages</span>
+      </button>
+    </main>
+  </div>
+  <div class="overlay" id="overlay"></div>
+  <!-- In-App Notifications Container -->
+  <div id="inAppNotifs" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Join Modal -->
+  <div class="modal" id="joinModal" hidden>
+    <div class="card">
+      <h2 style="margin:0 0 12px 0;font-size:26px;font-weight:800;color:var(--text)">Join Messages</h2>
+      <p style="margin:0 0 24px 0;color:var(--muted);font-size:16px">Choose a room to join. Your account username is used in chat.</p>
+      <div class="grid">
+        <div class="grid2">
+          <input id="nameInput" class="input" placeholder="Your name" maxlength="24" style="font-size:16px" />
+          <input id="roomInput" class="input" placeholder="Room (e.g. general)" maxlength="64" style="font-size:16px" />
+        </div>
+        <button class="btn primary" id="joinBtn" style="width:100%;padding:14px;font-size:16px;font-weight:600">Join</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Settings Modal -->
+  <div class="modal" id="notificationModal" hidden>
+    <div class="card" style="width:min(400px, 90vw)">
+      <h3 style="margin:0 0 16px 0">Notification Settings</h3>
+      <div class="grid" style="gap:16px;text-align:left">
+        <div>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="enableNotifications" style="margin:0">
+            <span>Enable browser notifications</span>
+          </label>
+          <div class="muted" style="font-size:12px;margin-top:4px">Get notified when you receive messages or calls</div>
+        </div>
+        <div>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="enableSounds" style="margin:0">
+            <span>Enable notification sounds</span>
+          </label>
+          <div class="muted" style="font-size:12px;margin-top:4px">Play sounds for notifications</div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px">
+          <button class="btn" id="closeNotificationSettings">Close</button>
+          <button class="btn primary" id="testNotification">Test</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connection Settings Modal -->
+  <div class="modal" id="connectionModal" hidden>
+    <div class="card" style="width:min(520px, 90vw)">
+      <h3 style="margin:0 0 16px 0">Connection Settings (ICE)</h3>
+      <div class="grid" style="gap:12px;text-align:left">
+        <div>
+          <label class="muted" style="font-size:12px">Additional STUN servers (comma separated)</label>
+          <input id="stunListInput" class="input" placeholder="e.g. stun:stun.cloudflare.com:3478, stun:global.stun.twilio.com:3478" />
+        </div>
+        <div class="grid2">
+          <div>
+            <label class="muted" style="font-size:12px">TURN URL</label>
+            <input id="turnUrlInput" class="input" placeholder="turn:your-turn-host:3478" />
+          </div>
+          <div>
+            <label class="muted" style="font-size:12px">TURN Username</label>
+            <input id="turnUserInput" class="input" placeholder="username" />
+          </div>
+          <div>
+            <label class="muted" style="font-size:12px">TURN Credential</label>
+            <input id="turnCredInput" class="input" placeholder="password" />
+          </div>
+        </div>
+        <div class="muted" style="font-size:12px">Tip: Many mobile/Wi‑Fi networks require a TURN server to relay media.</div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px">
+          <button class="btn" id="closeConnectionSettings">Close</button>
+          <button class="btn" id="testIceConfig">Test</button>
+          <button class="btn primary" id="saveIceConfig">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Call Modals -->
+  <div class="modal" id="userSelectModal" hidden>
+    <div class="card" style="width:min(400px, 90vw)">
+      <h3 style="margin:0 0 16px 0">Who to call?</h3>
+      <div id="userSelectList" class="userlist" style="max-height: 40vh; padding: 0; margin:0 -12px"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="incomingCallToast" hidden>
+    <div id="incomingCallInfo"></div>
+    <div class="toast-actions">
+      <button class="btn" id="declineCall">Decline</button>
+      <button class="btn primary" id="acceptCall">Accept</button>
+    </div>
+  </div>
+
+  <div class="modal call-modal-fullscreen" id="callModal" hidden>
+      <!-- Remote audio element for audio-only calls -->
+      <audio id="remoteAudio" autoplay playsinline></audio>
+
+      <div class="videos-fullscreen">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <video id="localVideo" autoplay playsinline muted></video>
+      </div>
+    <div class="call-overlay">
+      <!-- Audio call panel (visible in audio mode) -->
+      <div class="audio-panel" id="audioPanel" hidden>
+        <div class="audio-avatar" id="audioAvatar">U</div>
+        <div class="audio-name" id="audioName">User</div>
+        <div class="audio-sub"><span id="audioStatus">Ringing…</span> <span id="audioTimer" hidden>00:00</span></div>
+      </div>
+
+      <div id="callStatus">Connecting...</div>
+      <!-- Call identity for video/audio -->
+      <div class="call-identity" id="callIdentity">
+        <div class="avatar" id="callAvatar">U</div>
+        <div class="call-name" id="callName">User</div>
+      </div>
+      <div class="call-quality" id="callQuality">
+        <span id="qualityText">Connection: Good</span>
+        <span id="statsText"></span>
+      </div>
+      <div class="call-controls">
+        <button class="btn icon-btn call-control-btn" id="toggleMute" title="Mute/Unmute">
+          <svg class="unmuted-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+          <svg class="muted-icon" hidden xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+        </button>
+        <button class="btn icon-btn call-control-btn" id="toggleSpeaker" title="Speaker">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5l-6 6h-3v2h3l6 6z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          </button>
+          <button class="btn icon-btn call-control-btn" id="toggleFit" title="Fit / Fill">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 8 3 3 8 3"></polyline><line x1="3" y1="3" x2="10" y2="10"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="14" y1="14" x2="21" y2="21"></line></svg>
+          </button>
+          <button class="btn icon-btn call-control-btn" id="toggleVideo" title="Camera On/Off">
+          <svg class="video-on-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+          <svg class="video-off-icon" hidden xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+        </button>
+        <button class="btn icon-btn call-control-btn" id="shareScreen" title="Share Screen">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+        </button>
+        <button class="btn icon-btn call-control-btn" id="togglePip" title="Picture in Picture">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h20v14H2z"></path><path d="M8 21h8"></path><path d="M12 17v4"></path><rect x="14" y="8" width="6" height="4" rx="1"></rect></svg>
+        </button>
+        <button class="btn call-control-btn end-call-btn" id="endCall" title="End Call">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 3.41l3.02-3.02c.61-.6.36-1.72-.4-2.24l-2.2-1.1a.94.94 0 0 0-1.07.18l-.98.98a.5.5 0 0 1-.71 0l-1.42-1.42a.5.5 0 0 1 0-.71l.98-.98a.94.94 0 0 0 .18-1.07l-1.1-2.2a1.53 1.53 0 0 0-2.24-.4l-3.02 3.02a16 16 0 0 0 3.41 3.41z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal" id="settingsModal" hidden>
+    <div class="card" style="width:min(560px, 94vw); text-align:left">
+      <h3 style="margin:0 0 10px 0">Settings</h3>
+      <div class="segmented" role="tablist" style="margin-bottom:12px">
+        <button class="seg-btn active" id="settingsTabProfile" role="tab" aria-selected="true">Profile</button>
+        <button class="seg-btn" id="settingsTabPrefs" role="tab" aria-selected="false">Preferences</button>
+        <button class="seg-btn" id="settingsTabConn" role="tab" aria-selected="false">Connection</button>
+      </div>
+      <div id="settingsPanelProfile" class="grid" style="gap:14px">
+        <div style="display:flex; gap:16px; align-items:center">
+          <div class="avatar" id="settingsAvatarPreview" style="width:64px;height:64px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:700">U</div>
+          <div style="display:flex; gap:8px">
+            <input id="settingsAvatarInput" type="file" accept="image/*" hidden />
+            <button class="btn" id="settingsAvatarChange">Change Photo</button>
+            <button class="btn" id="settingsAvatarClear">Remove</button>
+          </div>
+        </div>
+        <div>
+          <label class="muted" style="font-size:12px">Display Name</label>
+          <input id="settingsDisplayName" class="input" placeholder="How should others see you?" maxlength="40" />
+        </div>
+        <div>
+          <label class="muted" style="font-size:12px">Bio</label>
+          <textarea id="settingsBio" class="input" placeholder="Tell people about you" maxlength="240" style="min-height:88px"></textarea>
+        </div>
+        <div style="display:flex; gap:12px; justify-content:flex-end">
+          <button class="btn" id="settingsClose">Close</button>
+          <button class="btn primary" id="settingsSaveProfile">Save</button>
+        </div>
+      </div>
+      <div id="settingsPanelPrefs" class="grid" style="gap:14px; display:none">
+        <div>
+          <label class="muted" style="font-size:12px">Theme</label>
+          <div style="display:flex; gap:8px">
+            <button class="btn" id="themeLight">Light</button>
+            <button class="btn" id="themeDark">Dark</button>
+          </div>
+        </div>
+        <div>
+          <div class="muted" style="font-size:12px;margin-bottom:6px">Notifications</div>
+          <div style="display:flex; gap:8px; align-items:center">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="prefEnableNotifications"> Enable notifications</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="prefEnableSounds"> Sounds</label>
+            <button class="btn" id="prefTestNotification">Test</button>
+          </div>
+        </div>
+        <div class="muted" style="font-size:12px">Advanced notification/connection options are available in their dedicated dialogs.</div>
+      </div>
+      <div id="settingsPanelConn" class="grid" style="gap:12px; display:none">
+        <div>
+          <label class="muted" style="font-size:12px">Additional STUN servers (comma separated)</label>
+          <input id="prefStunList" class="input" placeholder="e.g. stun:stun.cloudflare.com:3478" />
+        </div>
+        <div class="grid2">
+          <div>
+            <label class="muted" style="font-size:12px">TURN URL</label>
+            <input id="prefTurnUrl" class="input" placeholder="turn:your-turn-host:3478" />
+          </div>
+          <div>
+            <label class="muted" style="font-size:12px">TURN Username</label>
+            <input id="prefTurnUser" class="input" placeholder="username" />
+          </div>
+          <div>
+            <label class="muted" style="font-size:12px">TURN Credential</label>
+            <input id="prefTurnCred" class="input" placeholder="password" />
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; justify-content:flex-end">
+          <button class="btn" id="prefConnTest">Test</button>
+          <button class="btn primary" id="prefConnSave">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile View Modal -->
+  <div class="modal" id="profileViewModal" hidden>
+    <div class="card" style="width:min(420px, 92vw); text-align:center">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div class="avatar" id="profileViewAvatar" style="width:72px;height:72px;border-radius:50%;overflow:hidden;font-weight:800">U</div>
+        <div style="font-weight:800;font-size:20px" id="profileViewDisplay">User</div>
+        <div class="muted" id="profileViewUsername" style="font-size:13px">@user</div>
+        <div id="profileViewBio" class="muted" style="margin-top:6px;white-space:pre-wrap"></div>
+        <div style="display:flex; gap:12px; margin-top:10px">
+          <button class="btn" id="profileViewClose">Close</button>
+          <button class="btn primary" id="profileViewMessage">Message</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div class="modal" id="authModal" hidden>
+    <div class="card" style="width:min(440px, 92vw); text-align:left">
+      <h3 style="margin:0 0 6px 0">Welcome</h3>
+      <div class="muted" style="margin-bottom:16px">Create an account or log in to continue</div>
+      <div class="segmented" role="tablist" style="margin-bottom:12px">
+        <button class="seg-btn active" id="authModeRegister" role="tab" aria-selected="true">Create account</button>
+        <button class="seg-btn" id="authModeLogin" role="tab" aria-selected="false">Log in</button>
+      </div>
+      <div class="grid" style="gap:14px">
+        <div>
+          <label class="muted" style="font-size:12px">Username</label>
+          <input id="authUsername" class="input" placeholder="e.g. john_doe" maxlength="24" />
+          <div id="usernameHint" class="muted" style="font-size:12px; margin-top:6px">Allowed: a-z, 0-9, _ . - (3-24 chars)</div>
+        </div>
+        <div>
+          <label class="muted" style="font-size:12px">Password</label>
+          <div class="input-with-icon">
+            <input id="authPassword" class="input" type="password" placeholder="At least 6 characters" />
+            <button class="icon-eye" id="togglePasswordVisibility" title="Show/Hide password" aria-label="Toggle password"></button>
+          </div>
+          <div class="strength" id="passwordStrength" data-visible="true">
+            <div class="bar" id="passwordStrengthBar"></div>
+            <div class="muted" id="passwordStrengthText" style="font-size:12px; margin-top:6px">Strength: weak</div>
+          </div>
+        </div>
+        <div id="authError" class="failed" style="min-height:18px"></div>
+        <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:4px">
+          <button class="btn" id="authCancel">Cancel</button>
+          <button class="btn primary" id="authSubmit">Create account</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Application Scripts -->
+  <script src="/js/notifications.js"></script>
+  <script src="/js/webrtc.js"></script>
+  <script src="/js/chat.js"></script>
+  <script src="/js/ui-utils.js"></script>
+  <script src="/js/socket-handlers.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
